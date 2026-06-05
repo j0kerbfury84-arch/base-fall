@@ -33,6 +33,7 @@ interface Props {
   balance: number;
   onCashout: (multiplier: number) => void;
   onCrash: () => void;
+  onStart: () => void;
   rapidFire: boolean;
 }
 
