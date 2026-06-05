@@ -531,7 +531,12 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
         ctx.fill();
         ctx.globalAlpha = alpha;
         if (img && img.complete && img.naturalWidth > 0) {
+          // outer glow / rim for visibility against dark bg
+          const glowColor = z.kind === "toxic" ? "#7dff44" : z.kind === "titan" ? "#ff4422" : z.kind === "riot" ? "#ff8844" : "#ff5533";
+          ctx.shadowColor = glowColor;
+          ctx.shadowBlur = z.kind === "titan" ? 24 : 14;
           ctx.drawImage(img, -z.size / 2, -z.size / 2, z.size, z.size);
+          ctx.shadowBlur = 0;
         } else {
           // fallback drawn zombie (so something always shows)
           const color = z.kind === "toxic" ? "#7dd33a" : z.kind === "titan" ? "#6b3a2a" : z.kind === "riot" ? "#456a4a" : z.kind === "runner" ? "#8a9a6a" : "#6a8a4a";
