@@ -22,7 +22,8 @@ function phaseFor(m: number): Phase {
   return 5;
 }
 
-function loadImage(src: string) {
+function loadImage(src: string): HTMLImageElement | null {
+  if (typeof window === "undefined" || typeof Image === "undefined") return null;
   const img = new Image();
   img.src = src;
   return img;
@@ -58,9 +59,9 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
     raf: number;
     width: number;
     height: number;
-    images: Record<string, HTMLImageElement>;
-    bg: HTMLImageElement;
-    turret: HTMLImageElement;
+    images: Record<string, HTMLImageElement | null>;
+    bg: HTMLImageElement | null;
+    turret: HTMLImageElement | null;
     lastPhaseBroadcast: Phase;
   }>({
     g: { running: false, multiplier: 1, phase: 1, startedAt: 0, shake: 0, flash: 0 },
@@ -76,14 +77,17 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
     width: 0,
     height: 0,
     images: {},
-    bg: loadImage(bgUrl),
-    turret: loadImage(turretUrl),
+    bg: null,
+    turret: null,
     lastPhaseBroadcast: 0 as Phase,
   });
 
-  // Load images
+  // Load images on client only
   useEffect(() => {
-    stateRef.current.images = {
+    const s = stateRef.current;
+    s.bg = loadImage(bgUrl);
+    s.turret = loadImage(turretUrl);
+    s.images = {
       walker: loadImage(zWalker),
       runner: loadImage(zRunner),
       riot: loadImage(zRiot),
@@ -165,14 +169,14 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
       if (p >= 5) kinds.push("titan", "toxic");
       const kind = kinds[Math.floor(Math.random() * kinds.length)];
       const baseHp: Record<ZombieKind, number> = { walker: 8, runner: 5, riot: 25, toxic: 18, titan: 120 };
-      const baseSpeed: Record<ZombieKind, number> = { walker: 14, runner: 28, riot: 10, toxic: 16, titan: 8 };
-      const baseSize: Record<ZombieKind, number> = { walker: 34, runner: 32, riot: 40, toxic: 38, titan: 64 };
+      const baseSpeed: Record<ZombieKind, number> = { walker: 55, runner: 95, riot: 40, toxic: 65, titan: 35 };
+      const baseSize: Record<ZombieKind, number> = { walker: 56, runner: 52, riot: 64, toxic: 60, titan: 100 };
       const hp = baseHp[kind] * (1 + m * 0.15);
       const z: Zombie = {
         id: s.nextId++,
         kind,
         x: 30 + Math.random() * (s.width - 60),
-        y: -40 - Math.random() * 100,
+        y: -baseSize[kind] - Math.random() * 40,
         hp,
         maxHp: hp,
         speed: baseSpeed[kind] * (1 + m * 0.04),
@@ -255,7 +259,7 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
         updatePhase();
 
         // spawn zombies
-        const spawnRate = Math.min(8, 0.8 + s.g.multiplier * 0.05);
+        const spawnRate = Math.min(12, 2.5 + s.g.multiplier * 0.15);
         if (now - s.lastSpawn > 1000 / spawnRate) {
           s.lastSpawn = now;
           spawnZombie();
@@ -315,7 +319,8 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
             s.texts.push({ x: z.x, y: z.y, vy: -40, life: 0.7, text: `-${dmg}`, color: "#fff" });
             explode(b.x, b.y, "#ffaa44", 4);
             if (z.hp <= 0) {
-              z.dying = 0.3;
+              z.dying = 0.4;
+              s.g.shake = Math.max(s.g.shake, z.kind === "titan" ? 14 : 4);
               explode(z.x, z.y, z.kind === "toxic" ? "#88ff44" : "#cc3322", 18);
             }
             break;
@@ -345,93 +350,220 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
         s.g.shake = Math.max(0, s.g.shake - dt * 30);
       }
 
-      // background
-      if (s.bg.complete) {
+      // background — procedural battlefield (always renders) + optional image overlay
+      const groundGrad = ctx.createLinearGradient(0, 0, 0, h);
+      groundGrad.addColorStop(0, "#1a0a06");
+      groundGrad.addColorStop(0.4, "#2a1810");
+      groundGrad.addColorStop(1, "#1a0e08");
+      ctx.fillStyle = groundGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // overlay the image softly if it loaded
+      if (s.bg && s.bg.complete && s.bg.naturalWidth > 0) {
+        ctx.globalAlpha = 0.55;
         ctx.drawImage(s.bg, 0, 0, w, h);
-      } else {
-        ctx.fillStyle = "#1a1208"; ctx.fillRect(0, 0, w, h);
+        ctx.globalAlpha = 1;
       }
+
+      // procedural ground details (craters & rocks) — deterministic
+      ctx.save();
+      const tNow = now / 1000;
+      for (let i = 0; i < 14; i++) {
+        const cx = ((i * 137.5) % w);
+        const cy = ((i * 89.3) % h);
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 18 + (i % 4) * 6, 10 + (i % 3) * 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // ember flickers in higher phases
+      if (s.g.phase >= 2) {
+        for (let i = 0; i < 20 + s.g.phase * 8; i++) {
+          const ex = ((i * 73.1) % w);
+          const ey = ((i * 51.7) % h);
+          const flick = 0.5 + Math.sin(tNow * 4 + i) * 0.5;
+          ctx.fillStyle = `rgba(255,${100 + i * 5},20,${0.15 * flick})`;
+          ctx.beginPath();
+          ctx.arc(ex, ey, 6 + flick * 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
 
       // phase tint overlay
       const p = s.g.phase;
-      const tints = ["", "rgba(60,30,0,0.15)", "rgba(120,20,10,0.28)", "rgba(180,30,10,0.4)", "rgba(255,40,20,0.55)"];
+      const tints = ["rgba(20,40,20,0.15)", "rgba(80,40,10,0.25)", "rgba(140,30,10,0.35)", "rgba(180,30,10,0.45)", "rgba(255,40,20,0.55)"];
       ctx.fillStyle = tints[p - 1] || "";
       ctx.fillRect(0, 0, w, h);
 
       // walls
       for (const wall of s.walls) {
         const wy = wall.y * h;
+        const hpPct = wall.hp / wall.maxHp;
         if (wall.broken) {
           // broken debris line
-          ctx.fillStyle = "#3a2818";
-          for (let i = 0; i < w; i += 30) {
-            ctx.fillRect(i + Math.sin(i) * 3, wy + Math.sin(i) * 5, 18, 4);
+          ctx.fillStyle = "#2a1810";
+          for (let i = 0; i < w; i += 22) {
+            const px = i + Math.sin(i * 0.3) * 4;
+            const py = wy + Math.sin(i * 0.5) * 6;
+            ctx.fillRect(px, py, 14, 5);
+            ctx.fillStyle = "rgba(80,40,20,0.6)";
+            ctx.fillRect(px + 3, py - 3, 3, 3);
+            ctx.fillStyle = "#2a1810";
           }
         } else {
           const isFence = wall.label === "FENCE";
           const isBunker = wall.label === "BUNKER";
-          const hpPct = wall.hp / wall.maxHp;
-          ctx.fillStyle = isFence ? "#6b4520" : isBunker ? "#5a5a5a" : "#787878";
-          ctx.fillRect(0, wy - (isBunker ? 14 : 10), w, isBunker ? 22 : 16);
+          const height = isBunker ? 22 : 16;
+          // shadow
+          ctx.fillStyle = "rgba(0,0,0,0.5)";
+          ctx.fillRect(0, wy + height / 2, w, 8);
+          // wall body with gradient
+          const wg = ctx.createLinearGradient(0, wy - height / 2, 0, wy + height / 2);
+          if (isFence) { wg.addColorStop(0, "#8b5a2b"); wg.addColorStop(1, "#4a2810"); }
+          else if (isBunker) { wg.addColorStop(0, "#7a7a7a"); wg.addColorStop(1, "#3a3a3a"); }
+          else { wg.addColorStop(0, "#9a9a9a"); wg.addColorStop(1, "#5a5a5a"); }
+          ctx.fillStyle = wg;
+          ctx.fillRect(0, wy - height / 2, w, height);
+          // detail planks/blocks
+          ctx.fillStyle = "rgba(0,0,0,0.35)";
+          const step = isFence ? 16 : 32;
+          for (let i = 0; i < w; i += step) ctx.fillRect(i, wy - height / 2, 1, height);
           // spikes for fence
           if (isFence) {
             ctx.fillStyle = "#3a2510";
             for (let i = 0; i < w; i += 14) {
               ctx.beginPath();
-              ctx.moveTo(i, wy - 10);
-              ctx.lineTo(i + 7, wy - 18);
-              ctx.lineTo(i + 14, wy - 10);
+              ctx.moveTo(i, wy - height / 2);
+              ctx.lineTo(i + 7, wy - height / 2 - 8);
+              ctx.lineTo(i + 14, wy - height / 2);
               ctx.fill();
             }
           }
+          // damage cracks based on hp
+          if (hpPct < 0.6) {
+            ctx.strokeStyle = `rgba(0,0,0,${0.4 + (1 - hpPct) * 0.4})`;
+            ctx.lineWidth = 1;
+            for (let i = 0; i < (1 - hpPct) * 20; i++) {
+              const cx = (i * 71.3) % w;
+              ctx.beginPath();
+              ctx.moveTo(cx, wy - height / 2);
+              ctx.lineTo(cx + Math.sin(i) * 6, wy + height / 2);
+              ctx.stroke();
+            }
+          }
           // hp bar
-          ctx.fillStyle = "rgba(0,0,0,0.6)";
-          ctx.fillRect(8, wy + 14, w - 16, 4);
+          ctx.fillStyle = "rgba(0,0,0,0.7)";
+          ctx.fillRect(8, wy + height / 2 + 4, w - 16, 3);
           ctx.fillStyle = hpPct > 0.5 ? "#4ade80" : hpPct > 0.25 ? "#fbbf24" : "#ef4444";
-          ctx.fillRect(8, wy + 14, (w - 16) * hpPct, 4);
+          ctx.fillRect(8, wy + height / 2 + 4, (w - 16) * hpPct, 3);
         }
       }
 
-      // turret
+      // turret with rotation toward nearest zombie
       const tx = w / 2, ty = h - 70;
-      if (s.turret.complete) {
-        const ts = 90;
-        ctx.drawImage(s.turret, tx - ts / 2, ty - ts / 2, ts, ts);
+      let nearest: Zombie | null = null; let bestD = Infinity;
+      for (const z of s.zombies) {
+        if (z.dying) continue;
+        const dd = (z.x - tx) ** 2 + (z.y - ty) ** 2;
+        if (dd < bestD) { bestD = dd; nearest = z; }
       }
+      const tAng = nearest ? Math.atan2(nearest.y - ty, nearest.x - tx) + Math.PI / 2 : 0;
+      // turret base shadow
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.beginPath();
+      ctx.ellipse(tx, ty + 30, 50, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(tAng);
+      // recoil bob
+      const recoil = Math.max(0, 8 - (now - s.lastShot) / 8);
+      ctx.translate(0, recoil);
+      if (s.turret && s.turret.complete && s.turret.naturalWidth > 0) {
+        const ts = 100;
+        ctx.drawImage(s.turret, -ts / 2, -ts / 2, ts, ts);
+      } else {
+        // fallback turret
+        ctx.fillStyle = "#3a3a3a";
+        ctx.fillRect(-30, -30, 60, 60);
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillRect(-6, -50, 12, 30);
+      }
+      ctx.restore();
 
-      // bullets
-      ctx.fillStyle = "#fff7c0";
+      // bullets — bright tracers
       for (const b of s.bullets) {
+        const len = 18;
+        const speed = Math.hypot(b.vx, b.vy);
+        const ux = b.vx / speed, uy = b.vy / speed;
+        const tg = ctx.createLinearGradient(b.x - ux * len, b.y - uy * len, b.x, b.y);
+        tg.addColorStop(0, "rgba(255,180,40,0)");
+        tg.addColorStop(1, "rgba(255,240,180,1)");
+        ctx.strokeStyle = tg;
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,200,80,0.6)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - b.vx * 0.02, b.y - b.vy * 0.02);
+        ctx.moveTo(b.x - ux * len, b.y - uy * len);
+        ctx.lineTo(b.x, b.y);
         ctx.stroke();
+        // glow tip
+        ctx.fillStyle = "#fff7c0";
+        ctx.beginPath(); ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2); ctx.fill();
       }
 
-      // zombies
+      // zombies — face the turret + bob + death scale
       for (const z of s.zombies) {
         const img = s.images[z.kind];
-        const alpha = z.dying !== undefined ? Math.max(0, z.dying / 0.3) : 1;
+        const dying = z.dying !== undefined;
+        const alpha = dying ? Math.max(0, (z.dying as number) / 0.4) : 1;
+        const scale = dying ? 1 + (1 - alpha) * 0.4 : 1;
+        const bob = Math.sin(z.wobble * 3) * 3;
+        const sway = Math.sin(z.wobble * 2) * 0.08;
+        ctx.save();
+        ctx.translate(z.x, z.y + bob);
+        ctx.rotate(sway);
+        ctx.scale(scale, scale);
+        // shadow
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.beginPath();
+        ctx.ellipse(0, z.size * 0.35, z.size * 0.35, z.size * 0.12, 0, 0, Math.PI * 2);
+        ctx.fill();
         ctx.globalAlpha = alpha;
-        const bob = Math.sin(z.wobble * 2) * 2;
-        if (img && img.complete) {
-          ctx.drawImage(img, z.x - z.size / 2, z.y - z.size / 2 + bob, z.size, z.size);
+        const rimColor = z.kind === "toxic" ? "#9dff44" : z.kind === "titan" ? "#ff5522" : z.kind === "riot" ? "#ffaa55" : "#ff6644";
+        if (img && img.complete && img.naturalWidth > 0) {
+          ctx.shadowColor = rimColor;
+          ctx.shadowBlur = z.kind === "titan" ? 24 : 14;
+          ctx.drawImage(img, -z.size / 2, -z.size / 2, z.size, z.size);
+          ctx.shadowBlur = 0;
         } else {
-          ctx.fillStyle = "#4a7";
-          ctx.beginPath(); ctx.arc(z.x, z.y + bob, z.size / 2, 0, Math.PI * 2); ctx.fill();
+          // fallback drawn zombie (so something always shows)
+          const color = z.kind === "toxic" ? "#7dd33a" : z.kind === "titan" ? "#6b3a2a" : z.kind === "riot" ? "#456a4a" : z.kind === "runner" ? "#8a9a6a" : "#6a8a4a";
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(0, 0, z.size * 0.4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "#1a1a1a";
+          ctx.beginPath(); ctx.arc(-z.size * 0.12, -z.size * 0.08, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(z.size * 0.12, -z.size * 0.08, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "#1a1a1a";
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(0, z.size * 0.1, z.size * 0.18, 0, Math.PI); ctx.stroke();
+        }
+        // toxic aura
+        if (z.kind === "toxic" && !dying) {
+          ctx.globalAlpha = 0.3 + Math.sin(tNow * 6) * 0.15;
+          ctx.fillStyle = "#7dff44";
+          ctx.beginPath(); ctx.arc(0, 0, z.size * 0.55, 0, Math.PI * 2); ctx.fill();
         }
         ctx.globalAlpha = 1;
+        ctx.restore();
+
         // hp bar
-        if (z.hp < z.maxHp && !z.dying) {
-          const bw = z.size * 0.8;
-          ctx.fillStyle = "rgba(0,0,0,0.6)";
-          ctx.fillRect(z.x - bw / 2, z.y - z.size / 2 - 6, bw, 3);
-          ctx.fillStyle = "#ef4444";
-          ctx.fillRect(z.x - bw / 2, z.y - z.size / 2 - 6, bw * (z.hp / z.maxHp), 3);
+        if (z.hp < z.maxHp && !dying) {
+          const bw = z.size * 0.7;
+          ctx.fillStyle = "rgba(0,0,0,0.7)";
+          ctx.fillRect(z.x - bw / 2, z.y - z.size / 2 - 8, bw, 3);
+          ctx.fillStyle = z.hp / z.maxHp > 0.5 ? "#4ade80" : z.hp / z.maxHp > 0.25 ? "#fbbf24" : "#ef4444";
+          ctx.fillRect(z.x - bw / 2, z.y - z.size / 2 - 8, bw * (z.hp / z.maxHp), 3);
         }
       }
 
