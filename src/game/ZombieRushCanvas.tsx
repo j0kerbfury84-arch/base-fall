@@ -176,7 +176,7 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
         id: s.nextId++,
         kind,
         x: 30 + Math.random() * (s.width - 60),
-        y: -z.size,
+        y: -baseSize[kind] - Math.random() * 40,
         hp,
         maxHp: hp,
         speed: baseSpeed[kind] * (1 + m * 0.04),
