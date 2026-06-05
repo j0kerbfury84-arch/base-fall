@@ -530,13 +530,7 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
         ctx.ellipse(0, z.size * 0.35, z.size * 0.35, z.size * 0.12, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = alpha;
-        // bright rim circle so zombies always show against any bg
         const rimColor = z.kind === "toxic" ? "#9dff44" : z.kind === "titan" ? "#ff5522" : z.kind === "riot" ? "#ffaa55" : "#ff6644";
-        ctx.strokeStyle = rimColor;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, 0, z.size * 0.48, 0, Math.PI * 2);
-        ctx.stroke();
         if (img && img.complete && img.naturalWidth > 0) {
           ctx.shadowColor = rimColor;
           ctx.shadowBlur = z.kind === "titan" ? 24 : 14;
