@@ -259,7 +259,7 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
         updatePhase();
 
         // spawn zombies
-        const spawnRate = Math.min(8, 0.8 + s.g.multiplier * 0.05);
+        const spawnRate = Math.min(12, 2.5 + s.g.multiplier * 0.15);
         if (now - s.lastSpawn > 1000 / spawnRate) {
           s.lastSpawn = now;
           spawnZombie();
