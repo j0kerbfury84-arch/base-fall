@@ -37,7 +37,7 @@ interface Props {
   rapidFire: boolean;
 }
 
-export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, rapidFire }: Props) {
+export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, rapidFire }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [mult, setMult] = useState(1.0);
@@ -129,19 +129,7 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, rapidFire }
     onCrash();
   }, [onCrash]);
 
-  // expose start through DOM event from parent buttons
-  useEffect(() => {
-    const wrap = wrapRef.current;
-    if (!wrap) return;
-    const onStart = () => start();
-    const onCash = () => cashout();
-    wrap.addEventListener("zr-start", onStart);
-    wrap.addEventListener("zr-cashout", onCash);
-    return () => {
-      wrap.removeEventListener("zr-start", onStart);
-      wrap.removeEventListener("zr-cashout", onCash);
-    };
-  }, [start, cashout]);
+  // (event-based start removed — start() called directly via DEPLOY button)
 
   // Main loop
   useEffect(() => {
