@@ -609,6 +609,13 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
         ctx.fillRect(0, 0, w, h);
       }
 
+      // DEBUG counter
+      ctx.fillStyle = "#0f0";
+      ctx.font = "bold 12px monospace";
+      ctx.textAlign = "left";
+      ctx.fillText(`Z:${s.zombies.length} B:${s.bullets.length} run:${s.g.running}`, 4, 14);
+      if (s.zombies[0]) ctx.fillText(`Z0 x:${s.zombies[0].x.toFixed(0)} y:${s.zombies[0].y.toFixed(0)} hp:${s.zombies[0].hp.toFixed(1)}`, 4, 28);
+
       ctx.restore();
 
       s.raf = requestAnimationFrame(loop);
