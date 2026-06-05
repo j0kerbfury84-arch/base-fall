@@ -22,7 +22,8 @@ function phaseFor(m: number): Phase {
   return 5;
 }
 
-function loadImage(src: string) {
+function loadImage(src: string): HTMLImageElement | null {
+  if (typeof window === "undefined" || typeof Image === "undefined") return null;
   const img = new Image();
   img.src = src;
   return img;
@@ -58,9 +59,9 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
     raf: number;
     width: number;
     height: number;
-    images: Record<string, HTMLImageElement>;
-    bg: HTMLImageElement;
-    turret: HTMLImageElement;
+    images: Record<string, HTMLImageElement | null>;
+    bg: HTMLImageElement | null;
+    turret: HTMLImageElement | null;
     lastPhaseBroadcast: Phase;
   }>({
     g: { running: false, multiplier: 1, phase: 1, startedAt: 0, shake: 0, flash: 0 },
@@ -76,14 +77,17 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
     width: 0,
     height: 0,
     images: {},
-    bg: loadImage(bgUrl),
-    turret: loadImage(turretUrl),
+    bg: null,
+    turret: null,
     lastPhaseBroadcast: 0 as Phase,
   });
 
-  // Load images
+  // Load images on client only
   useEffect(() => {
-    stateRef.current.images = {
+    const s = stateRef.current;
+    s.bg = loadImage(bgUrl);
+    s.turret = loadImage(turretUrl);
+    s.images = {
       walker: loadImage(zWalker),
       runner: loadImage(zRunner),
       riot: loadImage(zRiot),
