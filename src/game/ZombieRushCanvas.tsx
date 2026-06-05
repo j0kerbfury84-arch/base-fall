@@ -319,7 +319,8 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
             s.texts.push({ x: z.x, y: z.y, vy: -40, life: 0.7, text: `-${dmg}`, color: "#fff" });
             explode(b.x, b.y, "#ffaa44", 4);
             if (z.hp <= 0) {
-              z.dying = 0.3;
+              z.dying = 0.4;
+              s.g.shake = Math.max(s.g.shake, z.kind === "titan" ? 14 : 4);
               explode(z.x, z.y, z.kind === "toxic" ? "#88ff44" : "#cc3322", 18);
             }
             break;
