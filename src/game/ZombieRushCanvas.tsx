@@ -170,7 +170,7 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
       const kind = kinds[Math.floor(Math.random() * kinds.length)];
       const baseHp: Record<ZombieKind, number> = { walker: 8, runner: 5, riot: 25, toxic: 18, titan: 120 };
       const baseSpeed: Record<ZombieKind, number> = { walker: 14, runner: 28, riot: 10, toxic: 16, titan: 8 };
-      const baseSize: Record<ZombieKind, number> = { walker: 34, runner: 32, riot: 40, toxic: 38, titan: 64 };
+      const baseSize: Record<ZombieKind, number> = { walker: 56, runner: 52, riot: 64, toxic: 60, titan: 100 };
       const hp = baseHp[kind] * (1 + m * 0.15);
       const z: Zombie = {
         id: s.nextId++,
