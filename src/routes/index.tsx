@@ -22,12 +22,9 @@ function Index() {
   const [sound, setSound] = useState(true);
   const [lastResult, setLastResult] = useState<{ type: "win" | "loss"; amount: number; mult?: number } | null>(null);
   const [history, setHistory] = useState<{ mult: number; cashed: boolean }[]>([]);
-
-  // Deduct bet when game starts handled here; we treat each start as bet deducted
   const [betLocked, setBetLocked] = useState(false);
 
   const handleStart = () => {
-    if (balance < bet) return;
     setBalance(b => b - bet);
     setBetLocked(true);
   };
@@ -46,13 +43,6 @@ function Index() {
     setBetLocked(false);
   };
 
-  // Wire start button to canvas via custom event
-  const startGame = () => {
-    handleStart();
-    const wrap = document.querySelector("[data-zr-wrap]") as HTMLElement | null;
-    wrap?.dispatchEvent(new Event("zr-start"));
-  };
-
   const adjustBet = (delta: number) => {
     if (betLocked) return;
     setBet(b => Math.max(0.1, Math.min(balance, Math.round((b + delta) * 100) / 100)));
@@ -67,7 +57,6 @@ function Index() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">
-      {/* SIDEBAR / TOP BAR */}
       <aside className="order-2 flex w-full flex-col gap-3 border-t border-border bg-card p-3 lg:order-1 lg:w-72 lg:border-r lg:border-t-0 lg:p-4">
         <header className="hidden lg:block">
           <h1 className="font-display text-2xl tracking-widest">
@@ -76,13 +65,11 @@ function Index() {
           <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">The Base Is Falling</p>
         </header>
 
-        {/* Balance */}
         <div className="rounded-lg border border-border bg-background/60 p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Balance</div>
           <div className="font-display text-2xl text-foreground">${balance.toFixed(2)}</div>
         </div>
 
-        {/* Bet */}
         <div className="rounded-lg border border-border bg-background/60 p-3">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Play Amount</div>
           <div className="mt-1 flex items-center gap-2">
@@ -108,7 +95,6 @@ function Index() {
           </div>
         </div>
 
-        {/* Mode buttons */}
         <button
           onClick={() => setRapidFire(r => !r)}
           className={`rounded-lg border-2 px-3 py-3 font-display text-lg tracking-wider transition active:scale-[0.98] ${
@@ -133,7 +119,6 @@ function Index() {
           <RotateCcw className="mr-1 inline size-4" /> QUICK RESET
         </button>
 
-        {/* Last result */}
         {lastResult && (
           <div
             className={`animate-fade-in rounded-lg border-2 px-3 py-2 text-center font-display text-lg ${
@@ -148,7 +133,6 @@ function Index() {
           </div>
         )}
 
-        {/* History */}
         <div className="rounded-lg border border-border bg-background/60 p-2">
           <div className="mb-1 text-[10px] uppercase tracking-widest text-muted-foreground">Last Runs</div>
           <div className="flex flex-wrap gap-1">
@@ -166,7 +150,6 @@ function Index() {
           </div>
         </div>
 
-        {/* Bottom controls */}
         <div className="mt-auto flex items-center gap-2">
           <button onClick={() => setSound(s => !s)}
             className="grid size-9 place-items-center rounded-md border border-border bg-secondary text-foreground">
@@ -178,58 +161,18 @@ function Index() {
         </div>
       </aside>
 
-      {/* GAME AREA */}
       <main className="relative order-1 flex flex-1 items-center justify-center p-2 lg:order-2 lg:p-4">
-        <div className="relative aspect-[3/4] w-full max-w-[520px] sm:aspect-[4/5] lg:aspect-auto lg:h-[min(90vh,900px)] lg:max-w-[700px]" data-zr-wrap>
-          <CanvasWrapper bet={bet} balance={balance} onCashout={handleCashout} onCrash={handleCrash} rapidFire={rapidFire} onStartClick={startGame} betLocked={betLocked} />
+        <div className="relative aspect-[3/4] w-full max-w-[520px] sm:aspect-[4/5] lg:aspect-auto lg:h-[min(90vh,900px)] lg:max-w-[700px]">
+          <ZombieRushCanvas
+            bet={bet}
+            balance={balance}
+            onStart={handleStart}
+            onCashout={handleCashout}
+            onCrash={handleCrash}
+            rapidFire={rapidFire}
+          />
         </div>
       </main>
-    </div>
-  );
-}
-
-function CanvasWrapper(props: {
-  bet: number;
-  balance: number;
-  onCashout: (m: number) => void;
-  onCrash: () => void;
-  rapidFire: boolean;
-  onStartClick: () => void;
-  betLocked: boolean;
-}) {
-  // Intercept the inner DEPLOY click by listening for game start through wrapper
-  // We re-render canvas only when bet/balance changes between rounds (not mid-run)
-  return (
-    <ZRCanvasShell {...props} />
-  );
-}
-
-function ZRCanvasShell({ bet, balance, onCashout, onCrash, rapidFire, onStartClick, betLocked }: {
-  bet: number; balance: number; onCashout: (m: number) => void; onCrash: () => void; rapidFire: boolean; onStartClick: () => void; betLocked: boolean;
-}) {
-  return (
-    <div
-      ref={(el) => {
-        if (el) el.setAttribute("data-zr-wrap", "true");
-      }}
-      className="h-full w-full"
-      onClickCapture={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest("[data-deploy-btn]")) {
-          // handled by inner button
-        }
-      }}
-    >
-      <ZombieRushCanvas
-        bet={bet}
-        balance={balance}
-        onCashout={onCashout}
-        onCrash={onCrash}
-        rapidFire={rapidFire}
-        // override deploy: when user clicks deploy in overlay, we also lock bet
-        // We patch by listening for our own event below
-        key={`${betLocked}`}
-      />
     </div>
   );
 }
