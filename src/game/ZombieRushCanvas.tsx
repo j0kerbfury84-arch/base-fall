@@ -530,6 +530,7 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
             <button
               onClick={() => {
                 if (balance < bet) return;
+                onStart();
                 start();
               }}
               disabled={balance < bet}
