@@ -618,7 +618,7 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
   const intensity = Math.min(1, (mult - 1) / 50);
 
   return (
-    <div ref={wrapRef} className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-black select-none">
+    <div ref={wrapRef} className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-black select-none" style={{ containerType: "inline-size" }}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {/* Multiplier HUD */}
