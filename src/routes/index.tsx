@@ -19,21 +19,22 @@ export const Route = createFileRoute("/")({
 type Layout = "wide" | "tall" | "tiny";
 
 function useLayout(): Layout {
-  const [layout, setLayout] = useState<Layout>("wide");
+  const [layout, setLayout] = useState<Layout>("tall");
   useEffect(() => {
+    const tiny = window.matchMedia("(max-height: 360px) and (max-width: 900px)");
+    const wide = window.matchMedia("(min-width: 700px) and (orientation: landscape)");
     const calc = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      // tiny: very short popouts where neither portrait nor landscape sidebars fit comfortably
-      if (h < 360 && w < 900) setLayout("tiny");
-      // wide: anything landscape with enough width for a sidebar
-      else if (w >= 700 && w > h) setLayout("wide");
-      // tall: portrait (mobile, tablet)
+      if (tiny.matches) setLayout("tiny");
+      else if (wide.matches) setLayout("wide");
       else setLayout("tall");
     };
     calc();
-    window.addEventListener("resize", calc);
-    return () => window.removeEventListener("resize", calc);
+    tiny.addEventListener("change", calc);
+    wide.addEventListener("change", calc);
+    return () => {
+      tiny.removeEventListener("change", calc);
+      wide.removeEventListener("change", calc);
+    };
   }, []);
   return layout;
 }
