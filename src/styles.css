@@ -2,6 +2,8 @@
 @source "../src";
 @import "tw-animate-css";
 
+
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -53,7 +55,6 @@
   }
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@500;600;700&display=swap');
 
 :root {
   --radius: 0.625rem;

@@ -618,34 +618,35 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
   const intensity = Math.min(1, (mult - 1) / 50);
 
   return (
-    <div ref={wrapRef} className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-black select-none">
+    <div ref={wrapRef} className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-black select-none" style={{ containerType: "inline-size" }}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {/* Multiplier HUD */}
-      <div className="pointer-events-none absolute inset-x-0 top-3 flex flex-col items-center">
+      <div className="pointer-events-none absolute inset-x-0 top-1 flex flex-col items-center sm:top-3">
         <div
           className="font-display tracking-wider"
           style={{
-            fontSize: `clamp(2.5rem, ${5 + intensity * 5}vw, 6rem)`,
+            fontSize: `clamp(1.5rem, ${4 + intensity * 4}cqw, 5rem)`,
             color: phase >= 4 ? "var(--danger)" : phase >= 3 ? "var(--warning)" : phase >= 2 ? "var(--accent)" : "#fff",
-            textShadow: `0 0 ${10 + intensity * 30}px currentColor, 0 4px 0 rgba(0,0,0,0.6)`,
+            textShadow: `0 0 ${8 + intensity * 24}px currentColor, 0 2px 0 rgba(0,0,0,0.6)`,
             animation: phase >= 4 ? "pulse-glow 0.8s ease-in-out infinite" : phase >= 3 ? "pulse-glow 1.4s ease-in-out infinite" : undefined,
             transform: phase >= 5 ? `translateX(${(Math.random() - 0.5) * 4}px)` : undefined,
+            lineHeight: 1,
           }}
         >
           {mult.toFixed(2)}×
         </div>
-        <div className="mt-1 rounded-full border border-border bg-card/80 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] backdrop-blur"
+        <div className="mt-0.5 rounded-full border border-border bg-card/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] backdrop-blur sm:mt-1 sm:px-3 sm:py-1 sm:text-xs"
           style={{ color: phase >= 3 ? "var(--danger)" : "var(--muted-foreground)" }}>
-          {phase >= 3 && <span className="mr-1 inline-block size-2 animate-pulse rounded-full" style={{ background: "var(--danger)" }} />}
-          Phase {phase} · {phaseLabel}
+          {phase >= 3 && <span className="mr-1 inline-block size-1.5 animate-pulse rounded-full sm:size-2" style={{ background: "var(--danger)" }} />}
+          P{phase} · {phaseLabel}
         </div>
       </div>
 
       {/* Broadcast */}
       {broadcast && (
-        <div className="pointer-events-none absolute left-1/2 top-28 -translate-x-1/2 animate-fade-in">
-          <div className="rounded border-l-4 border-destructive bg-black/80 px-4 py-2 font-mono text-sm text-destructive shadow-lg backdrop-blur">
+        <div className="pointer-events-none absolute left-1/2 top-16 -translate-x-1/2 animate-fade-in px-2 sm:top-28">
+          <div className="rounded border-l-4 border-destructive bg-black/80 px-2 py-1 font-mono text-[10px] text-destructive shadow-lg backdrop-blur sm:px-4 sm:py-2 sm:text-sm">
             📻 <span className="ml-1">{broadcast}</span>
           </div>
         </div>
@@ -653,12 +654,12 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
 
       {/* Start overlay */}
       {!running && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-2 backdrop-blur-sm">
           <div className="text-center">
-            <div className="font-display text-4xl tracking-widest text-foreground sm:text-6xl">
+            <div className="font-display tracking-widest text-foreground" style={{ fontSize: "clamp(1.25rem, 6cqw, 3.75rem)", lineHeight: 1 }}>
               ZOMBIE <span style={{ color: "var(--primary)" }}>RUSH</span>
             </div>
-            <div className="mt-1 text-xs uppercase tracking-[0.3em] text-muted-foreground">The Base Is Falling</div>
+            <div className="mt-1 text-[9px] uppercase tracking-[0.3em] text-muted-foreground sm:text-xs">The Base Is Falling</div>
             <button
               onClick={() => {
                 if (balance < bet) return;
@@ -666,7 +667,8 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
                 start();
               }}
               disabled={balance < bet}
-              className="mt-6 rounded-lg bg-primary px-8 py-3 font-display text-2xl tracking-wider text-primary-foreground shadow-[0_0_24px_var(--primary)] transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
+              className="mt-3 rounded-lg bg-primary px-4 py-2 font-display tracking-wider text-primary-foreground shadow-[0_0_24px_var(--primary)] transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 sm:mt-6 sm:px-8 sm:py-3"
+              style={{ fontSize: "clamp(0.875rem, 3.5cqw, 1.5rem)" }}
             >
               DEPLOY · ${bet.toFixed(2)}
             </button>
@@ -674,15 +676,17 @@ export function ZombieRushCanvas({ bet, balance, onCashout, onCrash, onStart, ra
         </div>
       )}
 
-      {/* Cashout button (mobile bottom) */}
+      {/* Cashout button */}
       {running && (
         <button
           onClick={cashout}
-          className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-accent bg-accent/90 px-6 py-3 font-display text-xl tracking-wider text-accent-foreground shadow-[0_0_20px_var(--accent)] backdrop-blur transition-transform active:scale-95"
+          className="absolute bottom-1.5 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-accent bg-accent/90 px-3 py-1.5 font-display tracking-wider text-accent-foreground shadow-[0_0_20px_var(--accent)] backdrop-blur transition-transform active:scale-95 sm:bottom-3 sm:px-6 sm:py-3"
+          style={{ fontSize: "clamp(0.75rem, 3cqw, 1.25rem)" }}
         >
           EXTRACT · {(bet * mult).toFixed(2)}$
         </button>
       )}
+
     </div>
   );
 }
