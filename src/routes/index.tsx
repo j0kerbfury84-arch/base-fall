@@ -24,8 +24,11 @@ function useLayout(): Layout {
     const calc = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      if (w < 520 || h < 360) setLayout("tiny");
-      else if (w >= 900 && w / h >= 1.05) setLayout("wide");
+      // tiny: very short popouts where neither portrait nor landscape sidebars fit comfortably
+      if (h < 360 && w < 900) setLayout("tiny");
+      // wide: anything landscape with enough width for a sidebar
+      else if (w >= 700 && w > h) setLayout("wide");
+      // tall: portrait (mobile, tablet)
       else setLayout("tall");
     };
     calc();
